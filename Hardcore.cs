@@ -5,10 +5,7 @@ using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Reflection;
-using System.Reflection.Emit;
 using UnityEngine;
-using UnityEngine.EventSystems;
-using UnityEngine.U2D;
 using UnityEngine.UI;
 
 namespace Hardcore
@@ -227,8 +224,7 @@ namespace Hardcore
                 Vector3 position = Player.m_localPlayer.transform.position;
                 __state = new Vector3(position.x, position.y, position.z);
             }
-
-            if (hardcoreProfile.hasDied)
+            else if (hardcoreProfile.hasDied)
             {
                 __instance.m_startPause = 0f;                
             }
@@ -244,6 +240,7 @@ namespace Hardcore
                 if (hardcoreProfile.isHardcore)
                 {
                     Hardcore.ResetHardcorePlayer(playerProfile);
+                    hardcoreProfile.hasDied = false;
                 }
             }            
         }
