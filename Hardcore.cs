@@ -15,7 +15,7 @@ namespace Hardcore
     public class Hardcore : BaseUnityPlugin
     {
         public const string UMID = "fracticality.valheim.hardcore";
-        public const string Version = "1.1.3";
+        public const string Version = "1.1.4";
         public const string ModName = "Hardcore";
         Harmony _Harmony;
         public static ManualLogSource Log;        
@@ -578,25 +578,27 @@ namespace Hardcore
                 Chat.instance.SendText(Talker.Type.Shout, text);
                 
                 if (string.IsNullOrEmpty(Hardcore.lastAttackerName))
-                {
-                    __instance.Message(MessageHud.MessageType.Center, Localization.instance.Localize("$hardcore_killed_by_msg", "yourself"));
+                {                    
                     Hardcore.lastAttackerName = "themself";
-                }
-                else
-                {
-                    __instance.Message(MessageHud.MessageType.Center, Localization.instance.Localize("$hardcore_killed_by_msg", Hardcore.lastAttackerName));
-                }
+                }                
 
-                List<ZNetPeer> peers = ZNet.instance.GetPeers();
+                List<ZNetPeer> peers = ZNet.instance.GetPeers();                
                 foreach(ZNetPeer peer in peers)
                 {
                     if (peer.IsReady())
                     {
-                        peer.m_rpc.Invoke("ShowMessage", new object[]
+                        ZRoutedRpc.instance.InvokeRoutedRPC(ZRoutedRpc.Everybody, "ShowMessage", new object[]
                         {
                             (int)MessageHud.MessageType.Center,
+                            //"$hardcore_killed_by_msg_peers"
                             Localization.instance.Localize("$hardcore_killed_by_msg_peers", __instance.GetPlayerName(), Hardcore.lastAttackerName)
                         });
+                            
+                        //peer.m_rpc.Invoke("ShowMessage", new object[]
+                        //{
+                        //    (int)MessageHud.MessageType.Center,
+                        //    Localization.instance.Localize("$hardcore_killed_by_msg_peers", __instance.GetPlayerName(), Hardcore.lastAttackerName)
+                        //});
                     }
                 }                
 
