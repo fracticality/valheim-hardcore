@@ -23,9 +23,10 @@ namespace Hardcore
         public static HardcoreData newProfileData;
         public static List<HardcoreData> hardcoreProfiles = new List<HardcoreData>();
         public static bool clearCustomSpawn = true;
+        public static string lastAttackerName;
 
         public static GameObject uiPanel;
-        public static GameObject hardcoreLabel;
+        public static GameObject hardcoreLabel;        
 
         private const int numDeathStrings = 7;
         private static string[] deathStrings;
@@ -540,7 +541,23 @@ namespace Hardcore
                 Hardcore.hardcoreLabel.SetActive(isHardcore);
             }            
         }
-    }        
+    }
+    
+    [HarmonyPatch(typeof(Player), "OnDamaged")]
+    public static class PlayerOnDamaged
+    {
+        public static void Prefix(HitData hit)
+        {
+            Hardcore.lastAttackerName = null;
+            if (hit != null && hit.HaveAttacker())
+            {
+                if (hit.m_attacker != null)
+                {
+                    Hardcore.lastAttackerName = hit.GetAttacker().GetHoverName();
+                }
+            }
+        }
+    }
 
     [HarmonyPatch(typeof(Player), "OnDeath")]
     public static class PlayerOnDeath
@@ -559,7 +576,31 @@ namespace Hardcore
 
                 string text = Localization.instance.Localize(Hardcore.GetRandomDeathString());
                 Chat.instance.SendText(Talker.Type.Shout, text);
-                __instance.Message(MessageHud.MessageType.Center, "$msg_youdied");
+                
+                if (string.IsNullOrEmpty(Hardcore.lastAttackerName))
+                {
+                    __instance.Message(MessageHud.MessageType.Center, Localization.instance.Localize("$hardcore_killed_by_msg", "yourself"));
+                    Hardcore.lastAttackerName = "themself";
+                }
+                else
+                {
+                    __instance.Message(MessageHud.MessageType.Center, Localization.instance.Localize("$hardcore_killed_by_msg", Hardcore.lastAttackerName));
+                }
+
+                List<ZNetPeer> peers = ZNet.instance.GetPeers();
+                foreach(ZNetPeer peer in peers)
+                {
+                    if (peer.IsReady())
+                    {
+                        peer.m_rpc.Invoke("ShowMessage", new object[]
+                        {
+                            (int)MessageHud.MessageType.Center,
+                            Localization.instance.Localize("$hardcore_killed_by_msg_peers", __instance.GetPlayerName(), Hardcore.lastAttackerName)
+                        });
+                    }
+                }                
+
+                Hardcore.lastAttackerName = null;
 
                 ZNetView nview = tPlayer.Field<ZNetView>("m_nview").Value;
                 nview.GetZDO().Set("dead", true);
