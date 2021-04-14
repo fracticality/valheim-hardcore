@@ -15,7 +15,7 @@ namespace Hardcore
     public class Hardcore : BaseUnityPlugin
     {
         public const string UMID = "fracticality.valheim.hardcore";
-        public const string Version = "1.1.4";
+        public const string Version = "1.2.0";
         public const string ModName = "Hardcore";
         Harmony _Harmony;
         public static ManualLogSource Log;        
@@ -23,13 +23,15 @@ namespace Hardcore
         public static HardcoreData newProfileData;
         public static List<HardcoreData> hardcoreProfiles = new List<HardcoreData>();
         public static bool clearCustomSpawn = true;
-        public static string lastAttackerName;
+        public static HitData lastHitData;
 
         public static GameObject uiPanel;
         public static GameObject hardcoreLabel;        
 
         private const int numDeathStrings = 7;
         private static string[] deathStrings;
+
+        private static Dictionary<string, List<string>> damageTypeStrings;
 
         private void Awake()
         {
@@ -62,6 +64,64 @@ namespace Hardcore
             {
                 deathStrings[i] = $"$hardcore_death_msg{i+1}";
             }
+        }
+
+        private static void PopulateDamageTypeStrings()
+        {
+            damageTypeStrings = new Dictionary<string, List<string>>();
+
+            Traverse tDamageTypes = Traverse.Create(typeof(HitData.DamageTypes));
+            List<string> damageTypeNames = tDamageTypes.Fields();
+            
+            foreach (string fieldName in damageTypeNames)
+            {
+                PopulateDamageTypeStrings(fieldName);
+            }
+        }
+
+        private static void PopulateDamageTypeStrings(string damageType)
+        {
+            Log.LogInfo($"Populating strings for damage type: [{damageType}]...");
+            Dictionary<string, string> englishTokens = Traverse.Create(typeof(ValheimLib.Language))
+                                                               .Method("GetLanguageDict", new Type[] { typeof(string)})
+                                                               .GetValue<Dictionary<string, string>>(new object[]
+                                                               { 
+                                                                   "English" 
+                                                               });            
+
+            List<string> damageTypeTokens = new List<string>();
+            foreach (string token in englishTokens.Keys)
+            {
+                if (token.StartsWith($"hardcore_deathby_{damageType.Substring(2)}"))
+                {
+                    damageTypeTokens.Add(token);
+                }
+            }
+
+            Log.LogInfo($"...{damageTypeTokens.Count} strings added.");
+            damageTypeStrings.Add(damageType, damageTypeTokens);
+        }
+
+        public static string GetRandomDamageTypeString(string damageType)
+        {
+            if (damageTypeStrings == null)
+            {
+                Log.LogInfo("damageTypeStrings is null. Creating...");
+                PopulateDamageTypeStrings();
+            }
+
+            Log.LogInfo($"Attempting to retrieve strings for: [{damageType}]...");
+            if (damageTypeStrings.TryGetValue(damageType, out List<string> deathStrings))
+            {
+                Log.LogInfo($"...{deathStrings.Count} found.");
+                if (deathStrings.Count > 0)
+                {
+                    int random = UnityEngine.Random.Range(0, deathStrings.Count);
+                    return deathStrings[random];
+                }
+            }
+
+            return string.Empty;
         }
 
         public static string GetRandomDeathString()
@@ -548,14 +608,13 @@ namespace Hardcore
     {
         public static void Prefix(HitData hit)
         {
-            Hardcore.lastAttackerName = null;
-            if (hit != null && hit.HaveAttacker())
-            {
-                if (hit.m_attacker != null)
-                {
-                    Hardcore.lastAttackerName = hit.GetAttacker().GetHoverName();
-                }
-            }
+            Hardcore.lastHitData = hit;
+            //if (hit != null && hit.HaveAttacker())
+            //{
+            //    Character attacker = hit.GetAttacker();                                
+            //    Hardcore.lastAttackerName = attacker.GetHoverName();
+            //    Hardcore.Log.LogInfo($"Attacker Name: {Hardcore.lastAttackerName}");                                             
+            //}
         }
     }
 
@@ -571,38 +630,41 @@ namespace Hardcore
                 Traverse tPlayer = Traverse.Create(__instance);
                 tPlayer.Field<bool>("m_firstSpawn").Value = true;
                 
-
                 hardcoreProfile.hasDied = true;
 
                 string text = Localization.instance.Localize(Hardcore.GetRandomDeathString());
                 Chat.instance.SendText(Talker.Type.Shout, text);
-                
-                if (string.IsNullOrEmpty(Hardcore.lastAttackerName))
-                {                    
-                    Hardcore.lastAttackerName = "themself";
-                }                
 
-                List<ZNetPeer> peers = ZNet.instance.GetPeers();                
-                foreach(ZNetPeer peer in peers)
+                HitData hit = Hardcore.lastHitData;
+                string lastAttackerName = "themself";
+                Character attacker = hit.GetAttacker();
+                if (attacker)
                 {
-                    if (peer.IsReady())
-                    {
-                        ZRoutedRpc.instance.InvokeRoutedRPC(ZRoutedRpc.Everybody, "ShowMessage", new object[]
-                        {
-                            (int)MessageHud.MessageType.Center,
-                            //"$hardcore_killed_by_msg_peers"
-                            Localization.instance.Localize("$hardcore_killed_by_msg_peers", __instance.GetPlayerName(), Hardcore.lastAttackerName)
-                        });
-                            
-                        //peer.m_rpc.Invoke("ShowMessage", new object[]
-                        //{
-                        //    (int)MessageHud.MessageType.Center,
-                        //    Localization.instance.Localize("$hardcore_killed_by_msg_peers", __instance.GetPlayerName(), Hardcore.lastAttackerName)
-                        //});
-                    }
+                    lastAttackerName = attacker.GetHoverName();
                 }                
 
-                Hardcore.lastAttackerName = null;
+                Traverse tDamages = Traverse.Create(hit.m_damage);
+                List<string> damageFieldNames = tDamages.Fields();
+
+                float max = 0.0f;
+                string highestDamageType = "m_damage";
+                foreach (string fieldName in damageFieldNames)
+                {
+                    float value = tDamages.Field<float>(fieldName).Value;
+                    if (value > max)
+                    {
+                        max = value;
+                        highestDamageType = fieldName;
+                    }
+                }                                
+
+                string damageTypeString = Localization.instance.Localize("$" + Hardcore.GetRandomDamageTypeString(highestDamageType));                                               
+
+                ZRoutedRpc.instance.InvokeRoutedRPC(ZRoutedRpc.Everybody, "ShowMessage", new object[]
+                {
+                    (int)MessageHud.MessageType.Center,                    
+                    Localization.instance.Localize("$hardcore_killed_by_msg_peers", __instance.GetPlayerName(), lastAttackerName, damageTypeString)
+                });
 
                 ZNetView nview = tPlayer.Field<ZNetView>("m_nview").Value;
                 nview.GetZDO().Set("dead", true);
