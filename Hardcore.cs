@@ -15,7 +15,7 @@ namespace Hardcore
     public class Hardcore : BaseUnityPlugin
     {
         public const string UMID = "fracticality.valheim.hardcore";
-        public const string Version = "1.2.0";
+        public const string Version = "1.2.1";
         public const string ModName = "Hardcore";
         Harmony _Harmony;
         public static ManualLogSource Log;        
@@ -141,8 +141,17 @@ namespace Hardcore
 
             playerProfile.ClearCustomSpawnPoint();
 
-            Traverse tMinimap = Traverse.Create(Minimap.instance);
+            ZNetView nview = Traverse.Create(Player.m_localPlayer).Field<ZNetView>("m_nview").Value;
+            if (nview != null)
+            {
+                string syncData = nview.GetZDO().GetString("playerSyncData", "");
+                if (!string.IsNullOrEmpty(syncData))
+                {
+                    nview.GetZDO().Set("playerSyncData", "");
+                }
+            }
 
+            Traverse tMinimap = Traverse.Create(Minimap.instance);
             List<Minimap.PinData> pins = tMinimap.Field<List<Minimap.PinData>>("m_pins").Value;
             List<Minimap.PinData> pinsToRemove = new List<Minimap.PinData>();
             foreach (Minimap.PinData pin in pins)
