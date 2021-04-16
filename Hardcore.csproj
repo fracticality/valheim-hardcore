@@ -9,7 +9,7 @@
     <AppDesignerFolder>Properties</AppDesignerFolder>
     <RootNamespace>Hardcore</RootNamespace>
     <AssemblyName>Hardcore</AssemblyName>
-    <TargetFrameworkVersion>v4.6</TargetFrameworkVersion>
+    <TargetFrameworkVersion>v4.6.1</TargetFrameworkVersion>
     <FileAlignment>512</FileAlignment>
     <Deterministic>true</Deterministic>
     <TargetFrameworkProfile />
@@ -34,11 +34,17 @@
     <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
   </PropertyGroup>
   <ItemGroup>
+    <Compile Include="DeathAlerts\DeathAlerts.cs" />
     <Compile Include="Hardcore.cs" />
+    <Compile Include="Patches\FejdStartup.cs" />
+    <Compile Include="Patches\Player.cs" />
+    <Compile Include="Patches\Raven.cs" />
+    <Compile Include="Patches\Valkyrie.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
   </ItemGroup>
   <ItemGroup>
     <None Include="packages.config" />
+    <None Include="Translations\English\english.json" />
   </ItemGroup>
   <ItemGroup>
     <Reference Include="0Harmony">
@@ -106,6 +112,12 @@
       <HintPath>..\StabilityMonitor\lib\cscompmgd.dll</HintPath>
     </Reference>
     <Reference Include="CustomMarshalers" />
+    <Reference Include="EquipmentAndQuickSlots">
+      <HintPath>lib\EquipmentAndQuickSlots.dll</HintPath>
+    </Reference>
+    <Reference Include="fastJSON">
+      <HintPath>lib\fastJSON.dll</HintPath>
+    </Reference>
     <Reference Include="HarmonyXInterop">
       <HintPath>..\StabilityMonitor\lib\HarmonyXInterop.dll</HintPath>
     </Reference>
@@ -466,9 +478,7 @@
     </Reference>
     <Reference Include="WindowsBase" />
   </ItemGroup>
-  <ItemGroup>
-    <Folder Include="Patches\" />
-  </ItemGroup>
+  <ItemGroup />
   <ItemGroup>
     <WCFMetadata Include="Connected Services\" />
   </ItemGroup>
