@@ -60,12 +60,16 @@ namespace Hardcore
             playerProfile.ClearCustomSpawnPoint();
 
             // Clear out custom EquipmentSlotInventory and QuickSlotInventory, if applicable            
-            EquipmentAndQuickSlots.ExtendedPlayerData epd = Player.m_localPlayer.gameObject.GetComponent<EquipmentAndQuickSlots.ExtendedPlayerData>();
-            if (epd)
+            try
             {
-                epd.QuickSlotInventory.RemoveAll();
-                epd.EquipmentSlotInventory.RemoveAll();
+                EquipmentAndQuickSlots.ExtendedPlayerData epd = Player.m_localPlayer.gameObject.GetComponent<EquipmentAndQuickSlots.ExtendedPlayerData>();
+                if (epd)
+                {
+                    epd.QuickSlotInventory.RemoveAll();
+                    epd.EquipmentSlotInventory.RemoveAll();
+                }
             }
+            catch { }
             // End clear custom inventories
 
             // Reset sync data for MapSharingMadeEasy to prevent removal of all shared pins on next sync
