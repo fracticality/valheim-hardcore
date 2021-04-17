@@ -15,7 +15,7 @@ namespace Hardcore
     public class Hardcore : BaseUnityPlugin
     {
         public const string UMID = "fracticality.valheim.hardcore";
-        public const string Version = "1.2.2";
+        public const string Version = "1.2.5";
         public const string ModName = "Hardcore";
         Harmony _Harmony;
         public static ManualLogSource Log;        
@@ -55,21 +55,27 @@ namespace Hardcore
         
         public static void ResetHardcorePlayer(PlayerProfile playerProfile)
         {
-            Player.m_localPlayer.ResetCharacter();
 
+            Traverse.Create(Player.m_localPlayer)
+                    .Field<Skills>("m_skills").Value
+                    .Clear();            
+            
             playerProfile.ClearCustomSpawnPoint();
 
-            // Clear out custom EquipmentSlotInventory and QuickSlotInventory, if applicable            
-            try
-            {
-                EquipmentAndQuickSlots.ExtendedPlayerData epd = Player.m_localPlayer.gameObject.GetComponent<EquipmentAndQuickSlots.ExtendedPlayerData>();
-                if (epd)
-                {
-                    epd.QuickSlotInventory.RemoveAll();
-                    epd.EquipmentSlotInventory.RemoveAll();
+
+            // Clear out custom EquipmentSlotInventory and QuickSlotInventory, if applicable
+            AppDomain currentDomain = AppDomain.CurrentDomain;
+            List<Assembly> assemblies = new List<Assembly>(currentDomain.GetAssemblies());            
+            if (assemblies.Find((Assembly assembly) => { return assembly.GetName().Name == "EquipmentAndQuickSlots"; }) != null)
+            {                
+                Component extendedPlayerData = Player.m_localPlayer.GetComponent("ExtendedPlayerData");                
+                if (extendedPlayerData)
+                {                    
+                    Traverse tExtendedPlayerData = Traverse.Create(extendedPlayerData);
+                    (tExtendedPlayerData.Field("EquipmentSlotInventory").GetValue() as Inventory).RemoveAll();
+                    (tExtendedPlayerData.Field("QuickSlotInventory").GetValue() as Inventory).RemoveAll();
                 }
-            }
-            catch { }
+            }            
             // End clear custom inventories
 
             // Reset sync data for MapSharingMadeEasy to prevent removal of all shared pins on next sync
