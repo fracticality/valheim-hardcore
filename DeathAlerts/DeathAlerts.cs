@@ -13,6 +13,47 @@ namespace Hardcore.DeathAlerts
         private static List<string> deathShouts;
         private static Dictionary<string, List<string>> deathAlerts;
 
+        public static void ShowDeathAlert(Player player)
+        {
+            string text = Localization.instance.Localize(GetRandomDeathShout());
+            Chat.instance.SendText(Talker.Type.Shout, text);
+
+            HitData hit = Hardcore.lastHitData;
+            string lastAttackerName = "themself";
+            Character attacker = hit.GetAttacker();
+            if (attacker)
+            {
+                lastAttackerName = attacker.GetHoverName();
+            }
+
+            Traverse tDamages = Traverse.Create(hit.m_damage);
+            List<string> damageFieldNames = tDamages.Fields();
+
+            float max = 0.0f;
+            string highestDamageType = "m_damage";
+            foreach (string fieldName in damageFieldNames)
+            {
+                float value = tDamages.Field<float>(fieldName).Value;
+                if (value > max)
+                {
+                    max = value;
+                    highestDamageType = fieldName;
+                }
+            }
+
+            if (highestDamageType == "m_damage" && player.IsSwiming())
+            {
+                //TODO: localization string(s) for drowning
+            }
+
+            string damageTypeString = Localization.instance.Localize(GetRandomDeathAlert(highestDamageType));
+
+            ZRoutedRpc.instance.InvokeRoutedRPC(ZRoutedRpc.Everybody, "ShowMessage", new object[]
+            {
+                    (int)MessageHud.MessageType.Center,
+                    Localization.instance.Localize("$hardcore_killed_by_msg_peers", player.GetPlayerName(), lastAttackerName, damageTypeString)
+            });
+        }
         public static string GetRandomDeathAlert(string damageType)
         {
             if (deathAlerts == null)

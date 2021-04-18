@@ -13,7 +13,7 @@ namespace Hardcore.Patches
         public static bool Prefix()
         {
             long profileID = Game.instance.GetPlayerProfile().GetPlayerID();
-            HardcoreData hardcoreProfile = Hardcore.hardcoreProfiles.Find((HardcoreData hardProfile) => { return hardProfile.profileID == profileID; });
+            HardcoreData hardcoreProfile = Hardcore.GetHardcoreDataForProfileID(profileID);
 
             return !(hardcoreProfile != null && hardcoreProfile.disableTutorials);
         }
