@@ -13,30 +13,38 @@ namespace Hardcore.Patches
     {
         public static void Prefix(ref Vector3 __state, ref Valkyrie __instance)
         {
-            HardcoreData hardcoreProfile = Hardcore.hardcoreProfiles.Find((HardcoreData hard) => { return hard.profileID == Game.instance.GetPlayerProfile().GetPlayerID(); });
+            long profileID = Game.instance.GetPlayerProfile().GetPlayerID();
+            HardcoreData hardcoreProfile = Hardcore.GetHardcoreDataForProfileID(profileID);
 
-            if (hardcoreProfile.skipIntro)
+            if (hardcoreProfile != null)
             {
-                Vector3 position = Player.m_localPlayer.transform.position;
-                __state = new Vector3(position.x, position.y, position.z);
-            }
-            else if (hardcoreProfile.hasDied)
-            {
-                __instance.m_startPause = 0f;
-            }
+                if (hardcoreProfile.skipIntro)
+                {
+                    Vector3 position = Player.m_localPlayer.transform.position;
+                    __state = new Vector3(position.x, position.y, position.z);
+                }
+                else if (hardcoreProfile.hasDied)
+                {
+                    __instance.m_startPause = 0f;
+                }
+            }            
         }
 
         public static void Postfix(Vector3 __state)
         {
             PlayerProfile playerProfile = Game.instance.GetPlayerProfile();
-            HardcoreData hardcoreProfile = Hardcore.hardcoreProfiles.Find((HardcoreData hard) => { return hard.profileID == playerProfile.GetPlayerID(); });
-            if (hardcoreProfile.skipIntro)
+            HardcoreData hardcoreProfile = Hardcore.GetHardcoreDataForProfileID(playerProfile.GetPlayerID());
+
+            if (hardcoreProfile != null)
             {
-                Player.m_localPlayer.transform.position = new Vector3(__state.x, __state.y, __state.z);
-                if (hardcoreProfile.isHardcore)
+                if (hardcoreProfile.skipIntro)
                 {
-                    Hardcore.ResetHardcorePlayer(playerProfile);
-                    hardcoreProfile.hasDied = false;
+                    Player.m_localPlayer.transform.position = new Vector3(__state.x, __state.y, __state.z);
+                    if (hardcoreProfile.isHardcore && hardcoreProfile.hasDied)
+                    {
+                        Hardcore.ResetHardcorePlayer(playerProfile);
+                        hardcoreProfile.hasDied = false;
+                    }
                 }
             }
         }
@@ -47,8 +55,15 @@ namespace Hardcore.Patches
     {
         public static bool Prefix()
         {
-            HardcoreData hardcoreProfile = Hardcore.hardcoreProfiles.Find((HardcoreData hard) => { return hard.profileID == Game.instance.GetPlayerProfile().GetPlayerID(); });
-            return !(hardcoreProfile.skipIntro || hardcoreProfile.hasDied);
+            long profileID = Game.instance.GetPlayerProfile().GetPlayerID();
+            HardcoreData hardcoreProfile = Hardcore.GetHardcoreDataForProfileID(profileID);
+
+            if (hardcoreProfile != null)
+            {
+                return !(hardcoreProfile.skipIntro || hardcoreProfile.hasDied);
+            }
+
+            return true;
         }
     }
 
@@ -57,8 +72,9 @@ namespace Hardcore.Patches
     {
         public static bool Prefix()
         {
-            HardcoreData hardcoreProfile = Hardcore.hardcoreProfiles.Find((HardcoreData hard) => { return hard.profileID == Game.instance.GetPlayerProfile().GetPlayerID(); });
-            return !(hardcoreProfile.skipIntro);
+            long profileID = Game.instance.GetPlayerProfile().GetPlayerID();
+            HardcoreData hardcoreProfile = Hardcore.GetHardcoreDataForProfileID(profileID);
+            return !(hardcoreProfile != null && hardcoreProfile.skipIntro);
         }
     }
 
@@ -68,11 +84,15 @@ namespace Hardcore.Patches
         public static void Postfix()
         {
             PlayerProfile playerProfile = Game.instance.GetPlayerProfile();
-            HardcoreData hardcoreProfile = Hardcore.hardcoreProfiles.Find((HardcoreData profile) => { return profile.profileID == playerProfile.GetPlayerID(); });
-            if (hardcoreProfile.isHardcore && hardcoreProfile.hasDied)
+            HardcoreData hardcoreProfile = Hardcore.GetHardcoreDataForProfileID(playerProfile.GetPlayerID());
+            
+            if (hardcoreProfile != null)
             {
-                Hardcore.ResetHardcorePlayer(playerProfile);
-                hardcoreProfile.hasDied = false;
+                if (hardcoreProfile.isHardcore && hardcoreProfile.hasDied)
+                {
+                    Hardcore.ResetHardcorePlayer(playerProfile);
+                    hardcoreProfile.hasDied = false;
+                }
             }
         }
     }

@@ -1,4 +1,5 @@
 ﻿using BepInEx;
+using BepInEx.Configuration;
 using BepInEx.Logging;
 using HarmonyLib;
 using System;
@@ -15,7 +16,7 @@ namespace Hardcore
     public class Hardcore : BaseUnityPlugin
     {
         public const string UMID = "fracticality.valheim.hardcore";
-        public const string Version = "1.2.5";
+        public const string Version = "1.2.6";
         public const string ModName = "Hardcore";
         Harmony _Harmony;
         public static ManualLogSource Log;        
@@ -27,22 +28,29 @@ namespace Hardcore
 
         public static GameObject uiPanel;
         public static GameObject hardcoreLabel;        
-               
 
+        public struct Settings
+        {
+            public static ConfigEntry<bool> clearMapOnDeath;
+            public static ConfigEntry<bool> clearCustomSpawn;
+        }
+               
         private void Awake()
         {
 
 			Log = Logger;            
 
-            _Harmony = Harmony.CreateAndPatchAll(Assembly.GetExecutingAssembly(), null);            
-            
-        }        
+            _Harmony = Harmony.CreateAndPatchAll(Assembly.GetExecutingAssembly(), null);
+
+            Settings.clearMapOnDeath = Config.Bind("Exceptions", "ClearMapOnDeath", true, "Whether or not to clear map data on death. Disable if map syncing is in play.");
+            Settings.clearCustomSpawn = Config.Bind("Exceptions", "ClearCustomSpawn", true, "Whether or not to clear the player's bed spawn point on death.");
+        }                 
 
         private void Update()
         {
             if (Input.GetKeyDown(KeyCode.F4))
             {
-                
+               
             }
         }
 
@@ -51,17 +59,24 @@ namespace Hardcore
             if (_Harmony != null) _Harmony.UnpatchSelf();
             if (uiPanel != null) Destroy(uiPanel);
             if (hardcoreLabel != null) Destroy(hardcoreLabel);
-        }               
+        }        
         
+        public static HardcoreData GetHardcoreDataForProfileID(long profileID)
+        {
+            return hardcoreProfiles.Find((HardcoreData profile) => { return profile.profileID == profileID; });
+        }
+
         public static void ResetHardcorePlayer(PlayerProfile playerProfile)
         {
+            //Log.LogWarning($"Resetting Hardcore Player with ID [{playerProfile.GetPlayerID()}] and Name [{Player.m_localPlayer.GetPlayerName()}] ");
+            //Log.LogWarning($"playerProfile.GetPlayerID() == Player.m_localPlayer.GetPlayerID(): {playerProfile.GetPlayerID() == Player.m_localPlayer.GetPlayerID()}");
+            //Log.LogWarning($"Game.instance.GetPlayerProfile().GetPlayerID() == playerProfile.GetPlayerID(): {Game.instance.GetPlayerProfile().GetPlayerID() == playerProfile.GetPlayerID()}");
 
             Traverse.Create(Player.m_localPlayer)
                     .Field<Skills>("m_skills").Value
-                    .Clear();            
+                    .Clear();                        
             
-            playerProfile.ClearCustomSpawnPoint();
-
+            Player.m_localPlayer.GetKnownTexts().RemoveAll((KeyValuePair<string, string> pair) => { return pair.Key.StartsWith("<|>"); });
 
             // Clear out custom EquipmentSlotInventory and QuickSlotInventory, if applicable
             AppDomain currentDomain = AppDomain.CurrentDomain;
@@ -72,39 +87,42 @@ namespace Hardcore
                 if (extendedPlayerData)
                 {                    
                     Traverse tExtendedPlayerData = Traverse.Create(extendedPlayerData);
-                    (tExtendedPlayerData.Field("EquipmentSlotInventory").GetValue() as Inventory).RemoveAll();
-                    (tExtendedPlayerData.Field("QuickSlotInventory").GetValue() as Inventory).RemoveAll();
+                    tExtendedPlayerData.Field<Inventory>("EquipmentSlotInventory").Value.RemoveAll();
+                    tExtendedPlayerData.Field<Inventory>("QuickSlotInventory").Value.RemoveAll();
                 }
             }            
             // End clear custom inventories
 
-            // Reset sync data for MapSharingMadeEasy to prevent removal of all shared pins on next sync
-            ZNetView nview = Traverse.Create(Player.m_localPlayer).Field<ZNetView>("m_nview").Value;
-            if (nview != null)
+            if (Settings.clearMapOnDeath.Value)
             {
-                string syncData = nview.GetZDO().GetString("playerSyncData", "");
-                if (!string.IsNullOrEmpty(syncData))
+                // Reset sync data for MapSharingMadeEasy to prevent removal of all shared pins on next sync
+                ZNetView nview = Traverse.Create(Player.m_localPlayer).Field<ZNetView>("m_nview").Value;
+                if (nview != null)
                 {
-                    nview.GetZDO().Set("playerSyncData", "");
+                    string syncData = nview.GetZDO().GetString("playerSyncData", string.Empty);
+                    if (!string.IsNullOrEmpty(syncData))
+                    {
+                        nview.GetZDO().Set("playerSyncData", string.Empty);
+                    }
                 }
-            }
-            // End reset sync data
+                // End reset sync data
 
-            Traverse tMinimap = Traverse.Create(Minimap.instance);
-            List<Minimap.PinData> pins = tMinimap.Field<List<Minimap.PinData>>("m_pins").Value;
-            List<Minimap.PinData> pinsToRemove = new List<Minimap.PinData>();
-            foreach (Minimap.PinData pin in pins)
-            {
-                if (pin.m_save)
-                    pinsToRemove.Add(pin);
-            }
-            foreach (Minimap.PinData pinToRemove in pinsToRemove)
-            {
-                Minimap.instance.RemovePin(pinToRemove);
-            }
+                Traverse tMinimap = Traverse.Create(Minimap.instance);
+                List<Minimap.PinData> pins = tMinimap.Field<List<Minimap.PinData>>("m_pins").Value;
+                List<Minimap.PinData> pinsToRemove = new List<Minimap.PinData>();
+                foreach (Minimap.PinData pin in pins)
+                {
+                    if (pin.m_save)
+                        pinsToRemove.Add(pin);
+                }
+                foreach (Minimap.PinData pinToRemove in pinsToRemove)
+                {
+                    Minimap.instance.RemovePin(pinToRemove);
+                }
 
-            Minimap.instance.Reset();
-            Minimap.instance.SaveMapData();
+                Minimap.instance.Reset();
+                Minimap.instance.SaveMapData();
+            }            
         }
 
         // TODO: Change savefile to use json rather than arbitrary binary serialization
