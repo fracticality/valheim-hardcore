@@ -88,12 +88,7 @@ namespace Hardcore.DeathAlerts
 
         private static void PopulateDeathAlerts(string damageType)
         {
-            Dictionary<string, string> tokens = Traverse.Create(typeof(ValheimLib.Language))
-                                                        .Method("GetLanguageDict", new Type[] { typeof(string) })
-                                                        .GetValue<Dictionary<string, string>>(new object[]
-                                                        {
-                                                            "English"
-                                                        });
+            Dictionary<string, string> tokens = Utilities.Translations.tokenStore;                                              
 
             List<string> damageTypeTokens = new List<string>();
             foreach (string token in tokens.Keys)
@@ -124,13 +119,9 @@ namespace Hardcore.DeathAlerts
         }
 
         private static void PopulateDeathShouts()
-        {            
-            Dictionary<string, string> tokens = Traverse.Create(typeof(ValheimLib.Language))
-                                                        .Method("GetLanguageDict", new Type[] { typeof(string) })
-                                                        .GetValue<Dictionary<string, string>>(new object[]
-                                                        {
-                                                            "English"
-                                                        });
+        {
+            Dictionary<string, string> tokens = Utilities.Translations.tokenStore;
+            
             deathShouts = new List<string>();
             foreach (string token in tokens.Keys)
             {

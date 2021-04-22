@@ -41,10 +41,11 @@
     <Compile Include="Patches\Raven.cs" />
     <Compile Include="Patches\Valkyrie.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
+    <Compile Include="Utilities\Translations.cs" />
   </ItemGroup>
   <ItemGroup>
     <None Include="packages.config" />
-    <None Include="Translations\English\english.json" />
+    <None Include="Translations\english.json" />
   </ItemGroup>
   <ItemGroup>
     <Reference Include="0Harmony">
@@ -485,6 +486,8 @@
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
   <PropertyGroup>
     <PostBuildEvent>xcopy /y $(TargetPath) "D:\Program Files (x86)\Steam\steamapps\common\Valheim\BepInEx\scripts\"
-xcopy /e /y $(ProjectDir)Translations "D:\Program Files (x86)\Steam\steamapps\common\Valheim\BepInEx\scripts\Translations\"</PostBuildEvent>
+xcopy /e /y $(ProjectDir)Translations "D:\Program Files (x86)\Steam\steamapps\common\Valheim\BepInEx\scripts\Translations\"
+xcopy /y $(TargetDir)fastJSON.dll "D:\Program Files (x86)\Steam\steamapps\common\Valheim\BepInEx\scripts\"</PostBuildEvent>
   </PropertyGroup>
+  <ProjectExtensions />
 </Project>

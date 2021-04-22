@@ -10,26 +10,25 @@ using UnityEngine;
 
 namespace Hardcore
 {
-    [BepInPlugin(Hardcore.UMID, Hardcore.ModName, Hardcore.Version)]
-    [BepInDependency(ValheimLib.ValheimLib.ModGuid)]
-    [BepInDependency(EquipmentAndQuickSlots.EquipmentAndQuickSlots.PluginId, BepInDependency.DependencyFlags.SoftDependency)]
+    [BepInPlugin(Hardcore.UMID, Hardcore.ModName, Hardcore.Version)]    
     public class Hardcore : BaseUnityPlugin
     {
         public const string UMID = "fracticality.valheim.hardcore";
-        public const string Version = "1.2.6";
+        public const string Version = "1.2.7";
         public const string ModName = "Hardcore";
+        public static readonly string ModPath = Path.GetDirectoryName(typeof(Hardcore).Assembly.Location);
+
         Harmony _Harmony;
         public static ManualLogSource Log;        
 
         public static HardcoreData newProfileData;
-        public static List<HardcoreData> hardcoreProfiles = new List<HardcoreData>();
-        public static bool clearCustomSpawn = true;
+        public static List<HardcoreData> hardcoreProfiles = new List<HardcoreData>();        
         public static HitData lastHitData;
 
         public static GameObject uiPanel;
         public static GameObject hardcoreLabel;        
 
-        public struct Settings
+        internal struct Settings 
         {
             public static ConfigEntry<bool> clearMapOnDeath;
             public static ConfigEntry<bool> clearCustomSpawn;
@@ -41,6 +40,8 @@ namespace Hardcore
 			Log = Logger;            
 
             _Harmony = Harmony.CreateAndPatchAll(Assembly.GetExecutingAssembly(), null);
+
+            Utilities.Translations.LoadTranslations();
 
             Settings.clearMapOnDeath = Config.Bind("Exceptions", "ClearMapOnDeath", true, "Whether or not to clear map data on death. Disable if map syncing is in play.");
             Settings.clearCustomSpawn = Config.Bind("Exceptions", "ClearCustomSpawn", true, "Whether or not to clear the player's bed spawn point on death.");
@@ -68,9 +69,7 @@ namespace Hardcore
 
         public static void ResetHardcorePlayer(PlayerProfile playerProfile)
         {
-            //Log.LogWarning($"Resetting Hardcore Player with ID [{playerProfile.GetPlayerID()}] and Name [{Player.m_localPlayer.GetPlayerName()}] ");
-            //Log.LogWarning($"playerProfile.GetPlayerID() == Player.m_localPlayer.GetPlayerID(): {playerProfile.GetPlayerID() == Player.m_localPlayer.GetPlayerID()}");
-            //Log.LogWarning($"Game.instance.GetPlayerProfile().GetPlayerID() == playerProfile.GetPlayerID(): {Game.instance.GetPlayerProfile().GetPlayerID() == playerProfile.GetPlayerID()}");
+            
 
             Traverse.Create(Player.m_localPlayer)
                     .Field<Skills>("m_skills").Value
