@@ -245,6 +245,7 @@ namespace Hardcore.Patches
 
                 if (Hardcore.newProfileData != null)
                 {
+                    Hardcore.Log.LogInfo($"Registering Hardcore Profile ID [{selectedProfileID}]");
                     Hardcore.newProfileData.profileID = selectedProfileID;
                     Hardcore.hardcoreProfiles.Add(Hardcore.newProfileData);
 

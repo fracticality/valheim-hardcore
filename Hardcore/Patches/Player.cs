@@ -5,7 +5,6 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 using UnityEngine;
-using static Hardcore.DeathAlerts.DeathAlerts;
 
 namespace Hardcore.Patches
 {
@@ -14,31 +13,20 @@ namespace Hardcore.Patches
     {
         public static bool Prefix(Player __instance)
         {
-            long profileID = __instance.GetPlayerID();
-            HardcoreData hardcoreData = Hardcore.hardcoreProfiles.Find((HardcoreData data) => { return data.profileID == profileID; });
+            long profileID = __instance.GetPlayerID();              
+            HardcoreData hardcoreData = Hardcore.GetHardcoreDataForProfileID(profileID);
 
-            return !hardcoreData.skipIntro;
+            return !(hardcoreData != null && hardcoreData.skipIntro);
         }
-    }
-
-    [HarmonyPatch(typeof(Player), "OnDamaged")]
-    public static class PlayerOnDamaged
-    {
-        public static void Prefix(HitData hit)
-        {
-            Hardcore.lastHitData = hit;            
-        }
-    }
+    }    
 
     [HarmonyPatch(typeof(Player), "OnDeath")]
     public static class PlayerOnDeath
     {
         public static bool Prefix(Player __instance)
-        {
+        {            
             long playerID = __instance.GetPlayerID();
             HardcoreData hardcoreProfile = Hardcore.GetHardcoreDataForProfileID(playerID);
-
-            ShowDeathAlert(__instance);            
 
             if (hardcoreProfile != null && hardcoreProfile.isHardcore)
             {

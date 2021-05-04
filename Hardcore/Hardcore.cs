@@ -6,6 +6,7 @@ using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Reflection;
+using ModUtils;
 using UnityEngine;
 
 namespace Hardcore
@@ -28,8 +29,9 @@ namespace Hardcore
         public static GameObject uiPanel;
         public static GameObject hardcoreLabel;        
 
-        internal struct Settings 
+        public struct Settings
         {
+            public static ConfigEntry<bool> enabled;
             public static ConfigEntry<bool> clearMapOnDeath;
             public static ConfigEntry<bool> clearCustomSpawn;
         }
@@ -41,10 +43,11 @@ namespace Hardcore
 
             _Harmony = Harmony.CreateAndPatchAll(Assembly.GetExecutingAssembly(), null);
 
-            Utilities.Translations.LoadTranslations();
+            TranslationUtils.LoadTranslations(ModPath);
 
-            Settings.clearMapOnDeath = Config.Bind("Exceptions", "ClearMapOnDeath", true, "Whether or not to clear map data on death. Disable if map syncing is in play.");
-            Settings.clearCustomSpawn = Config.Bind("Exceptions", "ClearCustomSpawn", true, "Whether or not to clear the player's bed spawn point on death.");
+            Settings.enabled = Config.Bind("General", "Enabled", true, "Enable/disable Hardcore's functionality.");
+            Settings.clearMapOnDeath = Config.Bind("General", "ClearMapOnDeath", true, "Whether or not to clear map data on death. Disable if map syncing is in play.");
+            Settings.clearCustomSpawn = Config.Bind("General", "ClearCustomSpawn", true, "Whether or not to clear the player's bed spawn point on death.");
         }                 
 
         private void Update()
@@ -68,9 +71,7 @@ namespace Hardcore
         }
 
         public static void ResetHardcorePlayer(PlayerProfile playerProfile)
-        {
-            
-
+        {            
             Traverse.Create(Player.m_localPlayer)
                     .Field<Skills>("m_skills").Value
                     .Clear();                        
