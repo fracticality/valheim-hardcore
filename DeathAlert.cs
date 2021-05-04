@@ -5,9 +5,9 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 
-namespace Hardcore.DeathAlerts
+namespace Hardcore
 {
-    public static class DeathAlerts
+    public static class DeathAlert
     {
         
         private static List<string> deathShouts;

@@ -1,33 +1,35 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.IO;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
+using BepInEx.Logging;
 using fastJSON;
 using HarmonyLib;
 
-namespace Hardcore.Utilities
+namespace ModUtils
 {
-    class Translations
+    public static class TranslationUtils
     {
         public static readonly Dictionary<string, string> tokenStore = new Dictionary<string, string>();
 
-        private static readonly string translationsPath = Path.Combine(Hardcore.ModPath, "Translations");
+        public static ManualLogSource Log = new ManualLogSource("TranslationUtils");
+
+        private static readonly string translationsPath = "Translations";
         private static readonly string defaultLanguage = "English";
         private static readonly string currentLanguage = Localization.instance.GetSelectedLanguage();        
 
-        public static void LoadTranslations()
+        public static void LoadTranslations(string modPath, ManualLogSource Logger = null)
         {
-            var filePath = Path.Combine(translationsPath, $"{currentLanguage.ToLowerInvariant()}.json");
+            if (Logger == null) Logger = Log;
+
+            var filePath = Path.Combine(modPath, translationsPath, $"{currentLanguage.ToLowerInvariant()}.json");
             if (!File.Exists(filePath))
             {
-                Hardcore.Log.LogWarning($"No Hardcore translations found for language [{currentLanguage}]. Defaulting to {defaultLanguage}...");
+                Logger.LogWarning($"No translations found for language [{currentLanguage}]. Defaulting to {defaultLanguage}...");
 
-                filePath = Path.Combine(translationsPath, $"{defaultLanguage.ToLowerInvariant()}.json");
+                filePath = Path.Combine(modPath, translationsPath, $"{defaultLanguage.ToLowerInvariant()}.json");
                 if (!File.Exists(filePath))
                 {
-                    Hardcore.Log.LogWarning($"No Hardcore translations found for default language [{defaultLanguage}]. Skipping translations...");
+                    Logger.LogWarning($"No translations found for default language [{defaultLanguage}]. Skipping translations...");
 
                     return;
                 }
