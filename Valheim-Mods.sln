@@ -13,7 +13,6 @@ Global
 	GlobalSection(SharedMSBuildProjectFiles) = preSolution
 		FracUtils\FracUtils.projitems*{51274c88-f3f4-49f6-ac83-a057c802102e}*SharedItemsImports = 4
 		FracUtils\FracUtils.projitems*{9c1f3087-8833-4f22-9d59-4a41cd7e7265}*SharedItemsImports = 4
-		FracUtils\FracUtils.projitems*{f77114cf-59c3-434d-97fc-e930109f9300}*SharedItemsImports = 13
 	EndGlobalSection
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
