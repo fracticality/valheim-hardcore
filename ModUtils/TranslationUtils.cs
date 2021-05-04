@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.IO;
 using BepInEx.Logging;
 using fastJSON;
@@ -18,7 +19,7 @@ namespace ModUtils
         private static readonly string currentLanguage = Localization.instance.GetSelectedLanguage();
 
         public static void LoadTranslations(string modPath, ManualLogSource Logger = null)
-        {
+        {            
             if (Logger == null) Logger = Log;
 
             var filePath = Path.Combine(modPath, translationsPath, $"{currentLanguage.ToLowerInvariant()}.json");
