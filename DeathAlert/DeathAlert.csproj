@@ -92,6 +92,6 @@
       <HintPath>..\lib\UnityEngine.CoreModule.dll</HintPath>
     </Reference>
   </ItemGroup>
-  <Import Project="..\FracUtils\FracUtils.projitems" Label="Shared" />
+  <Import Project="..\ModUtils\ModUtils.projitems" Label="Shared" />
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
 </Project>

@@ -7,12 +7,12 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Hardcore", "Hardcore\Hardco
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "DeathAlert", "DeathAlert\DeathAlert.csproj", "{9C1F3087-8833-4F22-9D59-4A41CD7E7265}"
 EndProject
-Project("{D954291E-2A0B-460D-934E-DC6B0785DB48}") = "ModUtils", "FracUtils\ModUtils.shproj", "{F77114CF-59C3-434D-97FC-E930109F9300}"
+Project("{D954291E-2A0B-460D-934E-DC6B0785DB48}") = "ModUtils", "ModUtils\ModUtils.shproj", "{F77114CF-59C3-434D-97FC-E930109F9300}"
 EndProject
 Global
 	GlobalSection(SharedMSBuildProjectFiles) = preSolution
-		FracUtils\FracUtils.projitems*{51274c88-f3f4-49f6-ac83-a057c802102e}*SharedItemsImports = 4
-		FracUtils\FracUtils.projitems*{9c1f3087-8833-4f22-9d59-4a41cd7e7265}*SharedItemsImports = 4
+		ModUtils\ModUtils.projitems*{51274c88-f3f4-49f6-ac83-a057c802102e}*SharedItemsImports = 4
+		ModUtils\ModUtils.projitems*{9c1f3087-8833-4f22-9d59-4a41cd7e7265}*SharedItemsImports = 4
 	EndGlobalSection
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU

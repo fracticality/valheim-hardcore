@@ -110,7 +110,7 @@
       <HintPath>..\lib\UnityEngine.UIModule.dll</HintPath>
     </Reference>
   </ItemGroup>
-  <Import Project="..\FracUtils\FracUtils.projitems" Label="Shared" />
+  <Import Project="..\ModUtils\ModUtils.projitems" Label="Shared" />
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
   <PropertyGroup>
     <PostBuildEvent>xcopy /y $(TargetPath) "D:\Program Files (x86)\Steam\steamapps\common\Valheim\BepInEx\scripts\"
