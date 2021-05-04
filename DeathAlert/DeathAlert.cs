@@ -5,6 +5,7 @@ using HarmonyLib;
 using System.Collections.Generic;
 using System.Reflection;
 using ModUtils;
+using System.IO;
 
 namespace DeathAlert
 {
@@ -14,6 +15,7 @@ namespace DeathAlert
         public const string UMID = "fracticality.valheim.deathalert";
         public const string Version = "0.1.0";
         public const string ModName = "Death Alert";
+        public static readonly string ModPath = Path.GetDirectoryName(typeof(DeathAlert).Assembly.Location);
         Harmony _Harmony;
         public static ManualLogSource Log;
 
@@ -34,6 +36,8 @@ namespace DeathAlert
 			Log = Logger;
 
             _Harmony = Harmony.CreateAndPatchAll(Assembly.GetExecutingAssembly(), null);
+
+            TranslationUtils.LoadTranslations(ModPath);
 
             Settings.Enabled = Config.Bind("General", "Enabled", true, "Enable/disable Death Alert's functionality.");
             Settings.EnableShoutOnDeath = Config.Bind("General", "EnableShoutOnDeath", true, "Enable/disable players shouting random phrases on death.");

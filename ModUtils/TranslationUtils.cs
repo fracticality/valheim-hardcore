@@ -15,7 +15,7 @@ namespace ModUtils
 
         private static readonly string translationsPath = "Translations";
         private static readonly string defaultLanguage = "English";
-        private static readonly string currentLanguage = Localization.instance.GetSelectedLanguage();        
+        private static readonly string currentLanguage = Localization.instance.GetSelectedLanguage();
 
         public static void LoadTranslations(string modPath, ManualLogSource Logger = null)
         {
@@ -39,7 +39,7 @@ namespace ModUtils
             {
                 Traverse tAddWord = Traverse.Create(Localization.instance).Method("AddWord", new Type[] { typeof(string), typeof(string) });
                 var localizationPairs = (Dictionary<string, object>)JSON.Parse(reader.ReadToEnd());
-                foreach(KeyValuePair<string, object> pairs in localizationPairs)
+                foreach (KeyValuePair<string, object> pairs in localizationPairs)
                 {
                     tAddWord.GetValue(new object[] { pairs.Key, pairs.Value.ToString() });
                     tokenStore.Add(pairs.Key, pairs.Value.ToString());

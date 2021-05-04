@@ -41,6 +41,7 @@
   </ItemGroup>
   <ItemGroup>
     <None Include="packages.config" />
+    <None Include="Translations\english.json" />
   </ItemGroup>
   <ItemGroup>
     <Reference Include="0Harmony">

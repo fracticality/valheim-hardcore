@@ -3,7 +3,7 @@
   <PropertyGroup>
     <MSBuildAllProjects Condition="'$(MSBuildVersion)' == '' Or '$(MSBuildVersion)' &lt; '16.0'">$(MSBuildAllProjects);$(MSBuildThisFileFullPath)</MSBuildAllProjects>
     <HasSharedItems>true</HasSharedItems>
-    <SharedGUID>f77114cf-59c3-434d-97fc-e930109f9300</SharedGUID>
+    <SharedGUID>7fd284a4-1e8e-4b68-a7b1-f718eb1b4d2c</SharedGUID>
   </PropertyGroup>
   <PropertyGroup Label="Configuration">
     <Import_RootNamespace>ModUtils</Import_RootNamespace>
