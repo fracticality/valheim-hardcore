@@ -9,11 +9,14 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "DeathAlert", "DeathAlert\De
 EndProject
 Project("{D954291E-2A0B-460D-934E-DC6B0785DB48}") = "ModUtils", "ModUtils\ModUtils.shproj", "{7FD284A4-1E8E-4B68-A7B1-F718EB1B4D2C}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "LocalGapFill", "LocalGapFill\LocalGapFill.csproj", "{A2759934-DD73-4D02-ABAC-864E0F486EF4}"
+EndProject
 Global
 	GlobalSection(SharedMSBuildProjectFiles) = preSolution
 		ModUtils\ModUtils.projitems*{51274c88-f3f4-49f6-ac83-a057c802102e}*SharedItemsImports = 4
 		ModUtils\ModUtils.projitems*{7fd284a4-1e8e-4b68-a7b1-f718eb1b4d2c}*SharedItemsImports = 13
 		ModUtils\ModUtils.projitems*{9c1f3087-8833-4f22-9d59-4a41cd7e7265}*SharedItemsImports = 4
+		ModUtils\ModUtils.projitems*{a2759934-dd73-4d02-abac-864e0f486ef4}*SharedItemsImports = 4
 	EndGlobalSection
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -28,6 +31,10 @@ Global
 		{9C1F3087-8833-4F22-9D59-4A41CD7E7265}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{9C1F3087-8833-4F22-9D59-4A41CD7E7265}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{9C1F3087-8833-4F22-9D59-4A41CD7E7265}.Release|Any CPU.Build.0 = Release|Any CPU
+		{A2759934-DD73-4D02-ABAC-864E0F486EF4}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{A2759934-DD73-4D02-ABAC-864E0F486EF4}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{A2759934-DD73-4D02-ABAC-864E0F486EF4}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{A2759934-DD73-4D02-ABAC-864E0F486EF4}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
