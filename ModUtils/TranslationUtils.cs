@@ -10,7 +10,7 @@ namespace ModUtils
 {
     public static class TranslationUtils
     {
-        public static readonly Dictionary<string, string> tokenStore = new Dictionary<string, string>();
+        private static readonly Dictionary<string, Dictionary<string, string>> tokenStore = new Dictionary<string, Dictionary<string, string>>();
 
         public static ManualLogSource Log = new ManualLogSource("TranslationUtils");
 
@@ -18,34 +18,87 @@ namespace ModUtils
         private static readonly string defaultLanguage = "English";
         private static readonly string currentLanguage = Localization.instance.GetSelectedLanguage();
 
-        public static void LoadTranslations(string modPath, ManualLogSource Logger = null)
-        {            
-            if (Logger == null) Logger = Log;
+        public static Dictionary<string, string> GetTokens(string modName)
+        {
+            if (!tokenStore.ContainsKey(modName))
+            {
+                Log.LogWarning($"No translation tokens exist for mod [{modName}]. Have you loaded them?");
 
+                return null;
+            }
+
+            tokenStore.TryGetValue(modName, out var tokens);
+
+            return tokens;
+        }
+
+        public static Dictionary<string, object> ParseTranslationFile(string modPath)
+        {            
             var filePath = Path.Combine(modPath, translationsPath, $"{currentLanguage.ToLowerInvariant()}.json");
             if (!File.Exists(filePath))
             {
-                Logger.LogWarning($"No translations found for language [{currentLanguage}]. Defaulting to {defaultLanguage}...");
+                Log.LogWarning($"No translations found for language [{currentLanguage}]. Defaulting to {defaultLanguage}...");
 
                 filePath = Path.Combine(modPath, translationsPath, $"{defaultLanguage.ToLowerInvariant()}.json");
                 if (!File.Exists(filePath))
                 {
-                    Logger.LogWarning($"No translations found for default language [{defaultLanguage}]. Skipping translations...");
+                    Log.LogWarning($"No translations found for default language [{defaultLanguage}]. Skipping translations...");
 
-                    return;
+                    return null;
                 }
             }
 
             using (StreamReader reader = new StreamReader(filePath))
-            {
-                Traverse tAddWord = Traverse.Create(Localization.instance).Method("AddWord", new Type[] { typeof(string), typeof(string) });
+            {                
                 var localizationPairs = (Dictionary<string, object>)JSON.Parse(reader.ReadToEnd());
-                foreach (KeyValuePair<string, object> pairs in localizationPairs)
-                {
-                    tAddWord.GetValue(new object[] { pairs.Key, pairs.Value.ToString() });
-                    tokenStore.Add(pairs.Key, pairs.Value.ToString());
-                }
+
+                return localizationPairs;
             }
+        }
+
+        public static void LoadTranslations(string modName, string modPath)
+        {            
+            Dictionary<string, object> localizationPairs = ParseTranslationFile(modPath);
+            if (localizationPairs == null)
+            {
+                return;
+            }
+
+            Dictionary<string, string> tokens = new Dictionary<string, string>();
+            foreach (KeyValuePair<string, object> pairs in localizationPairs)
+            {                
+                tokens.Add(pairs.Key, pairs.Value.ToString());
+            }
+
+            tokenStore.Add(modName, tokens);
+        }
+
+        public static void InsertTranslations(string modName, string modPath, bool overwrite = false)
+        {            
+            if (!tokenStore.ContainsKey(modName))
+            {
+                LoadTranslations(modName, modPath);
+            }
+
+            Traverse tAddWord = Traverse.Create(Localization.instance).Method("AddWord", new Type[] { typeof(string), typeof(string) });
+            Dictionary<string, string> m_translations = Traverse.Create(Localization.instance).Field<Dictionary<string, string>>("m_translations").Value;
+
+            if (tokenStore.TryGetValue(modName, out Dictionary<string, string> tokens)) 
+            {
+                foreach (KeyValuePair<string, string> pair in tokens)
+                {
+                    if (overwrite || !m_translations.ContainsKey(pair.Key))
+                    {
+                        tAddWord.GetValue(new object[] { pair.Key, pair.Value });
+                    }
+                }
+            }            
+        }
+
+        public static void ReloadTranslations(string modName, string modPath, bool overwrite = false)
+        {
+            tokenStore.Remove(modName);
+            InsertTranslations(modName, modPath, overwrite);
         }
     }
 }
