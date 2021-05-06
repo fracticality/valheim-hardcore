@@ -13,7 +13,7 @@ namespace DeathAlert
     public class DeathAlert : BaseUnityPlugin
     {
         public const string UMID = "fracticality.valheim.deathalert";
-        public const string Version = "0.1.0";
+        public const string Version = "0.2.0";
         public const string ModName = "Death Alert";
         public static readonly string ModPath = Path.GetDirectoryName(typeof(DeathAlert).Assembly.Location);
         Harmony _Harmony;
@@ -32,16 +32,18 @@ namespace DeathAlert
 
         private void Awake()
         {
+			Log = Logger;                        
 
-			Log = Logger;
-
-            _Harmony = Harmony.CreateAndPatchAll(Assembly.GetExecutingAssembly(), null);
-
-            TranslationUtils.LoadTranslations(ModPath);
-
-            Settings.Enabled = Config.Bind("General", "Enabled", true, "Enable/disable Death Alert's functionality.");
+            Settings.Enabled = Config.Bind("General", "Enabled", true, $"Enable/disable {ModName}'s functionality.");
             Settings.EnableShoutOnDeath = Config.Bind("General", "EnableShoutOnDeath", true, "Enable/disable players shouting random phrases on death.");
-            Settings.EnableAlertOnDeath = Config.Bind("General", "EnableAlertOnDeath", true, "Enable/disable server alerts randomly describing a player's death.");
+            Settings.EnableAlertOnDeath = Config.Bind("General", "EnableAlertOnDeath", true, "Enable/disable server alerts describing a player's death.");
+
+            if (Settings.Enabled.Value)
+            {
+                _Harmony = Harmony.CreateAndPatchAll(Assembly.GetExecutingAssembly(), null);
+
+                TranslationUtils.InsertTranslations(ModName, ModPath);
+            }
         }
 
         private void OnDestroy()
@@ -85,7 +87,7 @@ namespace DeathAlert
 
                 if (highestDamageType == "m_damage" && player.IsSwiming())
                 {
-                    //TODO: localization string(s) for drowning
+                    highestDamageType = "m_drowning";
                 }
 
                 string damageTypeString = Localization.instance.Localize(GetRandomDeathAlert(highestDamageType));
@@ -93,7 +95,7 @@ namespace DeathAlert
                 ZRoutedRpc.instance.InvokeRoutedRPC(ZRoutedRpc.Everybody, "ShowMessage", new object[]
                 {
                     (int)MessageHud.MessageType.Center,
-                    Localization.instance.Localize("$hardcore_killed_by_msg_peers", player.GetPlayerName(), lastAttackerName, damageTypeString)
+                    Localization.instance.Localize("$deathalert_killed_by_msg_peers", player.GetPlayerName(), lastAttackerName, damageTypeString)
                 });
             }
         }
@@ -131,18 +133,20 @@ namespace DeathAlert
 
         private static void PopulateDeathAlerts(string damageType)
         {
-            Dictionary<string, string> tokens = TranslationUtils.tokenStore;
-
-            List<string> damageTypeTokens = new List<string>();
-            foreach (string token in tokens.Keys)
+            Dictionary<string, string> tokens = TranslationUtils.GetTokens(ModName);
+            if (tokens != null)
             {
-                if (token.StartsWith($"hardcore_deathby_{damageType.Substring(2)}"))
+                List<string> damageTypeTokens = new List<string>();
+                foreach (string token in tokens.Keys)
                 {
-                    damageTypeTokens.Add(token);
+                    if (token.StartsWith($"deathalert_deathby_{damageType.Substring(2)}"))
+                    {
+                        damageTypeTokens.Add(token);
+                    }
                 }
-            }
 
-            deathAlerts.Add(damageType, damageTypeTokens);
+                deathAlerts.Add(damageType, damageTypeTokens);
+            }            
         }
 
         public static string GetRandomDeathShout()
@@ -163,16 +167,18 @@ namespace DeathAlert
 
         private static void PopulateDeathShouts()
         {
-            Dictionary<string, string> tokens = TranslationUtils.tokenStore;
-
-            deathShouts = new List<string>();
-            foreach (string token in tokens.Keys)
+            Dictionary<string, string> tokens = TranslationUtils.GetTokens(ModName);
+            if (tokens != null)
             {
-                if (token.StartsWith("hardcore_death_msg"))
+                deathShouts = new List<string>();
+                foreach (string token in tokens.Keys)
                 {
-                    deathShouts.Add(token);
+                    if (token.StartsWith("deathalert_death_msg"))
+                    {
+                        deathShouts.Add(token);
+                    }
                 }
-            }
+            }            
         }
     }    
 }
