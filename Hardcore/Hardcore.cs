@@ -15,7 +15,7 @@ namespace Hardcore
     public class Hardcore : BaseUnityPlugin
     {
         public const string UMID = "fracticality.valheim.hardcore";
-        public const string Version = "1.2.7";
+        public const string Version = "1.2.8";
         public const string ModName = "Hardcore";
         public static readonly string ModPath = Path.GetDirectoryName(typeof(Hardcore).Assembly.Location);
 
@@ -31,7 +31,7 @@ namespace Hardcore
 
         public struct Settings
         {
-            public static ConfigEntry<bool> enabled;
+            public static ConfigEntry<bool> Enabled;
             public static ConfigEntry<bool> clearMapOnDeath;
             public static ConfigEntry<bool> clearCustomSpawn;
         }
@@ -39,15 +39,18 @@ namespace Hardcore
         private void Awake()
         {
 
-			Log = Logger;            
+			Log = Logger;                        
 
-            _Harmony = Harmony.CreateAndPatchAll(Assembly.GetExecutingAssembly(), null);
-
-            TranslationUtils.LoadTranslations(ModPath);
-
-            Settings.enabled = Config.Bind("General", "Enabled", true, "Enable/disable Hardcore's functionality.");
+            Settings.Enabled = Config.Bind("General", "Enabled", true, $"Enable/disable {ModName}'s functionality.");
             Settings.clearMapOnDeath = Config.Bind("General", "ClearMapOnDeath", true, "Whether or not to clear map data on death. Disable if map syncing is in play.");
             Settings.clearCustomSpawn = Config.Bind("General", "ClearCustomSpawn", true, "Whether or not to clear the player's bed spawn point on death.");
+
+            if (Settings.Enabled.Value)
+            {
+                _Harmony = Harmony.CreateAndPatchAll(Assembly.GetExecutingAssembly(), null);
+
+                TranslationUtils.InsertTranslations(ModName, ModPath);
+            }
         }                 
 
         private void Update()
