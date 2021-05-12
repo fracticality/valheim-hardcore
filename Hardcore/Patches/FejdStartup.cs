@@ -33,7 +33,7 @@ namespace Hardcore.Patches
     public static class FejdStartupOnCharacterNew
     {
         public static void Postfix()
-        {
+        {            
             if (Hardcore.uiPanel != null)
             {
                 Toggle[] toggles = Hardcore.uiPanel.GetComponentsInChildren<Toggle>();

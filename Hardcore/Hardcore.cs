@@ -9,6 +9,7 @@ using System.Reflection;
 using ModUtils;
 using UnityEngine;
 using UnityEngine.UI;
+using fastJSON;
 
 namespace Hardcore
 {
@@ -16,7 +17,7 @@ namespace Hardcore
     public class Hardcore : BaseUnityPlugin
     {
         public const string UMID = "fracticality.valheim.hardcore";
-        public const string Version = "1.3.0";
+        public const string Version = "1.3.1";
         public const string ModName = "Hardcore";
         public static readonly string ModPath = Path.GetDirectoryName(typeof(Hardcore).Assembly.Location);
 
@@ -100,13 +101,18 @@ namespace Hardcore
                 return;
             }
 
-            if (fejdStartup.m_characterSelectScreen.activeInHierarchy)
+            if (!hardcoreLabel)
             {
-                if (!hardcoreLabel)
-                {
-                    InitHardcoreLabel();
-                }
+                InitHardcoreLabel();
+            }
 
+            if (!uiPanel)
+            {
+                InitUIPanel();
+            }
+
+            if (fejdStartup.m_characterSelectScreen.activeInHierarchy)
+            {                
                 Traverse tInstance = Traverse.Create(fejdStartup);
                 int profileIndex = tInstance.Field<int>("m_profileIndex").Value;
 
@@ -119,15 +125,7 @@ namespace Hardcore
 
                     hardcoreLabel.SetActive(isHardcore);
                 }
-            }
-
-            if (fejdStartup.m_newCharacterPanel.activeInHierarchy)
-            {
-                if (!uiPanel)
-                {
-                    InitUIPanel();
-                }
-            }
+            }            
 
             if (Input.GetKeyDown(KeyCode.F4))
             {
@@ -341,22 +339,17 @@ namespace Hardcore
                 Minimap.instance.SaveMapData();
             }            
         }
-
-        // TODO: Change savefile to use json rather than arbitrary binary serialization
+        
         public static bool SaveDataToDisk()
-        {
-            Directory.CreateDirectory(Utils.GetSaveDataPath() + "/mod_data");
-            string filename = Utils.GetSaveDataPath() + "/mod_data/hardcore_characters.fch";
+        {            
+            string profilesPath = Path.Combine(ModPath, "Profiles");
+            Directory.CreateDirectory(profilesPath);
+            string filename = Path.Combine(profilesPath, "hardcore_profiles.json");
             string fileOld = string.Copy(filename) + ".old";
             string fileNew = string.Copy(filename) + ".new";
 
-            FileStream fStream = File.Create(fileNew);
-            var bFormatter = new System.Runtime.Serialization.Formatters.Binary.BinaryFormatter();
-            bFormatter.Serialize(fStream, hardcoreProfiles);
-
-            fStream.Flush(true);
-            fStream.Close();
-            fStream.Dispose();            
+            string json = JSON.ToNiceJSON(hardcoreProfiles, new JSONParameters() { UseExtensions = false });
+            File.WriteAllText(fileNew, json);
 
             if (File.Exists(filename))
             {
@@ -366,70 +359,133 @@ namespace Hardcore
                 }
                 File.Move(filename, fileOld);
             }
-            File.Move(fileNew, filename);
+            File.Move(fileNew, filename);            
             return true;
+
+            //Directory.CreateDirectory(Utils.GetSaveDataPath() + "/mod_data");
+            //string filename = Utils.GetSaveDataPath() + "/mod_data/hardcore_characters.fch";
+            //string fileOld = string.Copy(filename) + ".old";
+            //string fileNew = string.Copy(filename) + ".new";
+
+            //FileStream fStream = File.Create(fileNew);
+            //var bFormatter = new System.Runtime.Serialization.Formatters.Binary.BinaryFormatter();
+            //bFormatter.Serialize(fStream, hardcoreProfiles);
+
+            //fStream.Flush(true);
+            //fStream.Close();
+            //fStream.Dispose();            
+
+            //if (File.Exists(filename))
+            //{
+            //    if (File.Exists(fileOld))
+            //    {
+            //        File.Delete(fileOld);
+            //    }
+            //    File.Move(filename, fileOld);
+            //}
+            //File.Move(fileNew, filename);
+            //return true;
         }        
 
         // TODO: Change savefile to use json rather than arbitrary binary deserialization
         public static bool LoadDataFromDisk()
-        {                       
-            string filename = Utils.GetSaveDataPath() + "/mod_data/hardcore_characters.fch";
-            string fileOld = string.Copy(filename) + ".old";            
-            FileStream fStream;                  
+        {
+            string profilesPath = Path.Combine(ModPath, "Profiles");
+            Directory.CreateDirectory(profilesPath);
+            string filename = Path.Combine(profilesPath, "hardcore_profiles.json");
+            string fileOld = string.Copy(filename) + ".old";
 
-            Log.LogInfo($"Loading hardcore character list...");
-            try
+            Log.LogInfo($"Loading hardcore profiles...");
+            if (!File.Exists(filename))
             {
-                if (!File.Exists(filename))
+                Log.LogWarning("  Data file missing! Searching for backup...");
+                if (File.Exists(fileOld))
                 {
-                    Log.LogWarning("- Data file missing! Searching for backup...");
-                    if (File.Exists(fileOld))
-                    {
-                        Log.LogInfo("- Backup found! Restoring...");
-                        File.Move(fileOld, filename);
-                    }
-                    else
-                    {
-                        Log.LogWarning("- Backup missing!");
-                        return false;
-                    }
+                    Log.LogInfo("  Backup found! Restoring...");
+                    File.Move(fileOld, filename);
                 }
-                fStream = File.OpenRead(filename);
-            }
-            catch
-            {
-                Log.LogError("Failed to open " + filename);
-                return false;
-            }            
-
-            try
-            {
-                var bFormatter = new System.Runtime.Serialization.Formatters.Binary.BinaryFormatter();                
-                hardcoreProfiles = (List<HardcoreData>)bFormatter.Deserialize(fStream);                
-
-                List<PlayerProfile> playerProfiles = PlayerProfile.GetAllPlayerProfiles();
-                foreach (HardcoreData profileData in hardcoreProfiles)
+                else
                 {
-                    if (!playerProfiles.Exists((PlayerProfile profile) => { return profile.GetPlayerID() == profileData.profileID; }))
-                    {
-                        Log.LogInfo($"- Player ID {profileData.profileID} no longer exists! Removing...");
-                        hardcoreProfiles.Remove(profileData);
-                    }
+                    Log.LogWarning("  No backup found");
+                    return false;
                 }
+            }
 
-                Log.LogInfo($"Loaded {hardcoreProfiles.Count} Hardcore Profile(s)");
-            }
-            catch (Exception e)
-            {                
-                Log.LogError("Failed to read from " + filename + ": " + e.Message);
-                return false;
-            }
-            finally
-            {                
-                fStream.Dispose();
-            }
+            string json = File.ReadAllText(filename);
+            hardcoreProfiles = JSON.ToObject<List<HardcoreData>>(json);            
+
+            List<PlayerProfile> playerProfiles = PlayerProfile.GetAllPlayerProfiles();
+
+            // Remove extraneous hardcore profiles
+            hardcoreProfiles.RemoveAll(hp =>
+            {
+                return !playerProfiles.Exists(pp =>
+                {
+                    return pp.GetPlayerID() == hp.profileID;
+                });
+            });
+
+            Log.LogInfo($"  Loaded {hardcoreProfiles.Count} Hardcore Profile(s)");
 
             return true;
+
+            //string filename = Utils.GetSaveDataPath() + "/mod_data/hardcore_characters.fch";
+            //string fileOld = string.Copy(filename) + ".old";            
+            //FileStream fStream;                  
+
+            //Log.LogInfo($"Loading hardcore character list...");
+            //try
+            //{
+            //    if (!File.Exists(filename))
+            //    {
+            //        Log.LogWarning("- Data file missing! Searching for backup...");
+            //        if (File.Exists(fileOld))
+            //        {
+            //            Log.LogInfo("- Backup found! Restoring...");
+            //            File.Move(fileOld, filename);
+            //        }
+            //        else
+            //        {
+            //            Log.LogWarning("- Backup missing!");
+            //            return false;
+            //        }
+            //    }
+            //    fStream = File.OpenRead(filename);
+            //}
+            //catch
+            //{
+            //    Log.LogError("Failed to open " + filename);
+            //    return false;
+            //}            
+
+            //try
+            //{
+            //    var bFormatter = new System.Runtime.Serialization.Formatters.Binary.BinaryFormatter();                
+            //    hardcoreProfiles = (List<HardcoreData>)bFormatter.Deserialize(fStream);                
+
+            //    List<PlayerProfile> playerProfiles = PlayerProfile.GetAllPlayerProfiles();
+            //    foreach (HardcoreData profileData in hardcoreProfiles)
+            //    {
+            //        if (!playerProfiles.Exists((PlayerProfile profile) => { return profile.GetPlayerID() == profileData.profileID; }))
+            //        {
+            //            Log.LogInfo($"- Player ID {profileData.profileID} no longer exists! Removing...");
+            //            hardcoreProfiles.Remove(profileData);
+            //        }
+            //    }
+
+            //    Log.LogInfo($"Loaded {hardcoreProfiles.Count} Hardcore Profile(s)");
+            //}
+            //catch (Exception e)
+            //{                
+            //    Log.LogError("Failed to read from " + filename + ": " + e.Message);
+            //    return false;
+            //}
+            //finally
+            //{                
+            //    fStream.Dispose();
+            //}
+
+            //return true;
         }
     }
 

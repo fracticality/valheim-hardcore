@@ -10,7 +10,7 @@ namespace Hardcore.Patches
     [HarmonyPatch(typeof(PlayerProfile), "Save")]
     public static class PlayerProfileSave
     {
-        public static void Postfix(ref PlayerProfile __instance)
+        public static void Postfix(PlayerProfile __instance)
         {
             if (Hardcore.newProfileData != null)
             {
