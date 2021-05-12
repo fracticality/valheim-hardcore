@@ -20,6 +20,7 @@ namespace Hardcore
         public const string Version = "1.3.1";
         public const string ModName = "Hardcore";
         public static readonly string ModPath = Path.GetDirectoryName(typeof(Hardcore).Assembly.Location);
+        public static readonly string ModSavePath = Path.Combine(Utils.GetSaveDataPath(), "HardcoreProfiles");
 
         Harmony _Harmony;
         public static ManualLogSource Log;        
@@ -341,10 +342,9 @@ namespace Hardcore
         }
         
         public static bool SaveDataToDisk()
-        {            
-            string profilesPath = Path.Combine(ModPath, "Profiles");
-            Directory.CreateDirectory(profilesPath);
-            string filename = Path.Combine(profilesPath, "hardcore_profiles.json");
+        {                        
+            Directory.CreateDirectory(ModSavePath);
+            string filename = Path.Combine(ModSavePath, "hardcore_profiles.json");
             string fileOld = string.Copy(filename) + ".old";
             string fileNew = string.Copy(filename) + ".new";
 
@@ -389,10 +389,9 @@ namespace Hardcore
 
         // TODO: Change savefile to use json rather than arbitrary binary deserialization
         public static bool LoadDataFromDisk()
-        {
-            string profilesPath = Path.Combine(ModPath, "Profiles");
-            Directory.CreateDirectory(profilesPath);
-            string filename = Path.Combine(profilesPath, "hardcore_profiles.json");
+        {            
+            Directory.CreateDirectory(ModSavePath);
+            string filename = Path.Combine(ModSavePath, "hardcore_profiles.json");
             string fileOld = string.Copy(filename) + ".old";
 
             Log.LogInfo($"Loading hardcore profiles...");
