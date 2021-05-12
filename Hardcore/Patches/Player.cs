@@ -45,7 +45,7 @@ namespace Hardcore.Patches
                 __instance.UnequipAllItems();
                 __instance.GetInventory().RemoveAll();
 
-                if (Hardcore.Settings.clearCustomSpawn.Value)
+                if (Hardcore.Settings.ClearCustomSpawn.Value)
                 {
                     Game.instance.GetPlayerProfile().ClearCustomSpawnPoint();
                 }

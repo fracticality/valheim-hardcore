@@ -22,7 +22,7 @@ namespace ModUtils
         {
             if (!tokenStore.ContainsKey(modName))
             {
-                Log.LogWarning($"No translation tokens exist for mod [{modName}]. Have you loaded them?");
+                Log.LogWarning($"No translation tokens found for mod [{modName}]. Have you loaded them?");
 
                 return null;
             }
@@ -80,16 +80,15 @@ namespace ModUtils
                 LoadTranslations(modName, modPath);
             }
 
-            Traverse tAddWord = Traverse.Create(Localization.instance).Method("AddWord", new Type[] { typeof(string), typeof(string) });
-            Dictionary<string, string> m_translations = Traverse.Create(Localization.instance).Field<Dictionary<string, string>>("m_translations").Value;
-
             if (tokenStore.TryGetValue(modName, out Dictionary<string, string> tokens)) 
             {
+                Traverse AddWordFunc = Traverse.Create(Localization.instance).Method("AddWord", new Type[] { typeof(string), typeof(string) });
+                Dictionary<string, string> m_translations = Traverse.Create(Localization.instance).Field<Dictionary<string, string>>("m_translations").Value;
                 foreach (KeyValuePair<string, string> pair in tokens)
                 {
                     if (overwrite || !m_translations.ContainsKey(pair.Key))
                     {
-                        tAddWord.GetValue(new object[] { pair.Key, pair.Value });
+                        AddWordFunc.GetValue(new object[] { pair.Key, pair.Value });
                     }
                 }
             }            

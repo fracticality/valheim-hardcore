@@ -8,6 +8,7 @@ using System.IO;
 using System.Reflection;
 using ModUtils;
 using UnityEngine;
+using UnityEngine.UI;
 
 namespace Hardcore
 {
@@ -15,7 +16,7 @@ namespace Hardcore
     public class Hardcore : BaseUnityPlugin
     {
         public const string UMID = "fracticality.valheim.hardcore";
-        public const string Version = "1.2.8";
+        public const string Version = "1.3.0";
         public const string ModName = "Hardcore";
         public static readonly string ModPath = Path.GetDirectoryName(typeof(Hardcore).Assembly.Location);
 
@@ -32,8 +33,9 @@ namespace Hardcore
         public struct Settings
         {
             public static ConfigEntry<bool> Enabled;
-            public static ConfigEntry<bool> clearMapOnDeath;
-            public static ConfigEntry<bool> clearCustomSpawn;
+            public static ConfigEntry<bool> ClearMapOnDeath;
+            public static ConfigEntry<bool> ClearCustomSpawn;
+            public static ConfigEntry<bool> HardcoreOnly;
         }
                
         private void Awake()
@@ -42,22 +44,94 @@ namespace Hardcore
 			Log = Logger;                        
 
             Settings.Enabled = Config.Bind("General", "Enabled", true, $"Enable/disable {ModName}'s functionality.");
-            Settings.clearMapOnDeath = Config.Bind("General", "ClearMapOnDeath", true, "Whether or not to clear map data on death. Disable if map syncing is in play.");
-            Settings.clearCustomSpawn = Config.Bind("General", "ClearCustomSpawn", true, "Whether or not to clear the player's bed spawn point on death.");
+            Settings.ClearMapOnDeath = Config.Bind("General", "ClearMapOnDeath", true, "Whether or not to clear map data on death. Disable if map syncing is in play.");
+            Settings.ClearCustomSpawn = Config.Bind("General", "ClearCustomSpawn", true, "Whether or not to clear the player's bed spawn point on death.");
+            Settings.HardcoreOnly = Config.Bind("General", "HardcoreOnly", false, "If enabled, will force all new characters to be Hardcore and filters non-Hardcore characters from the character list.");
+
+            Settings.Enabled.SettingChanged += Enabled_SettingChanged;            
 
             if (Settings.Enabled.Value)
             {
-                _Harmony = Harmony.CreateAndPatchAll(Assembly.GetExecutingAssembly(), null);
-
-                TranslationUtils.InsertTranslations(ModName, ModPath);
+                Init();
+                Settings.HardcoreOnly.SettingChanged += HardcoreOnly_SettingChanged;
             }
-        }                 
+        }
+
+        private void Init()
+        {
+            _Harmony = Harmony.CreateAndPatchAll(Assembly.GetExecutingAssembly(), null);
+
+            TranslationUtils.InsertTranslations(ModName, ModPath);
+        }
+
+        private void Enabled_SettingChanged(object sender, EventArgs e)
+        {
+            if (Settings.Enabled.Value)
+            {
+                Init();
+                Settings.HardcoreOnly.SettingChanged += HardcoreOnly_SettingChanged;                
+            }
+            else
+            {
+                OnDestroy();
+                Settings.HardcoreOnly.SettingChanged -= HardcoreOnly_SettingChanged;
+            }
+
+            HardcoreOnly_SettingChanged(null, null);
+        }
+
+        private void HardcoreOnly_SettingChanged(object sender, EventArgs e)
+        {
+            Traverse.Create(FejdStartup.instance).Field("m_profiles").SetValue(null);
+            Traverse.Create(FejdStartup.instance).Field("m_profileIndex").SetValue(0);
+            Traverse.Create(FejdStartup.instance).Method("UpdateCharacterList").GetValue();
+        }
 
         private void Update()
         {
+            if (!Settings.Enabled.Value)
+            {
+                return;
+            }
+
+            FejdStartup fejdStartup = FejdStartup.instance;
+            if (!fejdStartup)
+            {
+                return;
+            }
+
+            if (fejdStartup.m_characterSelectScreen.activeInHierarchy)
+            {
+                if (!hardcoreLabel)
+                {
+                    InitHardcoreLabel();
+                }
+
+                Traverse tInstance = Traverse.Create(fejdStartup);
+                int profileIndex = tInstance.Field<int>("m_profileIndex").Value;
+
+                List<PlayerProfile> profiles = tInstance.Field<List<PlayerProfile>>("m_profiles").Value;
+                if (profiles?.Count > 0)
+                {
+                    PlayerProfile profile = profiles[profileIndex];
+                    long profileID = profile.GetPlayerID();
+                    bool isHardcore = hardcoreProfiles.Exists((HardcoreData data) => { return data.profileID == profileID && data.isHardcore; });
+
+                    hardcoreLabel.SetActive(isHardcore);
+                }
+            }
+
+            if (fejdStartup.m_newCharacterPanel.activeInHierarchy)
+            {
+                if (!uiPanel)
+                {
+                    InitUIPanel();
+                }
+            }
+
             if (Input.GetKeyDown(KeyCode.F4))
             {
-               
+                
             }
         }
 
@@ -66,8 +140,148 @@ namespace Hardcore
             if (_Harmony != null) _Harmony.UnpatchSelf();
             if (uiPanel != null) Destroy(uiPanel);
             if (hardcoreLabel != null) Destroy(hardcoreLabel);
-        }        
-        
+        }
+
+        private static void InitGameObjects()
+        {
+            InitHardcoreLabel();
+            InitUIPanel();
+        }
+
+        private static void InitHardcoreLabel()
+        {
+            GameObject selectScreen = FejdStartup.instance.m_characterSelectScreen;
+
+            Text characterName = selectScreen.transform.Find("SelectCharacter").Find("CharacterName").GetComponentInChildren<Text>();
+
+            GameObject hardcoreLabelGO = new GameObject("HardcoreLabel");
+            RectTransform rect = hardcoreLabelGO.AddComponent<RectTransform>();
+            rect.position = (characterName.transform as RectTransform).position + new Vector3(0, 60);
+            rect.sizeDelta = new Vector2((characterName.transform as RectTransform).rect.width, 40);
+
+            Text text = hardcoreLabelGO.AddComponent<Text>();
+            text.font = characterName.font;
+            text.color = Color.red;
+            text.fontSize = characterName.fontSize - 12;
+            text.alignment = TextAnchor.MiddleCenter;
+            text.text = Localization.instance.Localize("($hardcore_hardcore)");
+
+            Outline outline = hardcoreLabelGO.AddComponent<Outline>();
+            outline.effectColor = Color.black;
+            outline.effectDistance = new Vector2(2, -2);
+
+            hardcoreLabelGO.transform.SetParent(characterName.transform);
+
+            hardcoreLabel = hardcoreLabelGO;
+
+            Log.LogInfo($"{hardcoreLabel} Initialized.");            
+        }
+
+        private static void InitUIPanel()
+        {
+            FejdStartup instance = FejdStartup.instance;
+            GameObject panel = instance.m_newCharacterPanel;
+            RectTransform hairPanel = panel.transform.Find("CusomizationPanel").Find("HairPanel").GetComponent<RectTransform>();
+            float width = hairPanel.rect.width;
+
+            GameObject hardcorePanel = new GameObject("HardcorePanel");
+            RectTransform hardcorePanelRect = hardcorePanel.AddComponent<RectTransform>();
+            hardcorePanelRect.SetParent(panel.transform);
+            hardcorePanelRect.anchorMin = new Vector2(1f, 0.5f);
+            hardcorePanelRect.anchorMax = new Vector2(1f, 0.5f);
+            hardcorePanelRect.anchoredPosition = new Vector2(-width / 2, 0f);
+            hardcorePanelRect.sizeDelta = new Vector2(width, 150);
+
+            Color fadedWhite = new Color(0.784f, 0.784f, 0.784f);
+            Image hardcorePanelBG = hardcorePanel.AddComponent<Image>();
+            hardcorePanelBG.sprite = panel.transform.Find("CusomizationPanel").Find("bkg").GetComponent<Image>().sprite;
+            hardcorePanelBG.color = fadedWhite * 0.8f;
+
+            Toggle maletoggle = panel.GetComponent<PlayerCustomizaton>().m_maleToggle;
+            Sprite checkboxSprite = maletoggle.image.sprite;
+            Sprite checkmarkSprite = (maletoggle.graphic as Image).sprite;
+            CanvasGroup canvas = panel.GetComponent<CanvasGroup>();
+
+            string[] toggleNames = new string[] { "Hardcore", "Skip Intro", "Disable Tutorials" };
+            int count = toggleNames.Length;
+
+            for (int i = 0; i < count; i++)
+            {
+                string toggleName = toggleNames[i] + " Toggle";
+                float vOffset = (i * 50) + 25;
+
+                GameObject toggleGO = new GameObject(toggleName);
+                RectTransform toggleRect = toggleGO.AddComponent<RectTransform>();
+                toggleRect.SetParent(hardcorePanelRect);
+                toggleRect.anchorMin = new Vector2(0f, 1f);
+                toggleRect.anchorMax = new Vector2(0f, 1f);
+                toggleRect.anchoredPosition = new Vector2((width / 2) + 28, -vOffset);
+                toggleRect.sizeDelta = new Vector2(width, 150);
+
+                GameObject checkboxGO = new GameObject(toggleName + " Checkbox");
+                RectTransform checkboxRect = checkboxGO.AddComponent<RectTransform>();
+                checkboxRect.SetParent(toggleRect);
+                checkboxRect.anchorMin = new Vector2(0f, 0.5f);
+                checkboxRect.anchorMax = new Vector2(0f, 0.5f);
+                checkboxRect.anchoredPosition = new Vector2(0f, 0f);
+                checkboxRect.sizeDelta = new Vector2(28f, 28f);
+
+                Image checkbox = checkboxGO.AddComponent<Image>();
+                checkbox.color = Color.white;
+                checkbox.sprite = checkboxSprite;
+
+                GameObject checkmarkGO = new GameObject(toggleName + " Checkmark");
+                RectTransform checkmarkRect = checkmarkGO.AddComponent<RectTransform>();
+                checkmarkRect.SetParent(toggleRect);
+                checkmarkRect.anchorMin = new Vector2(0f, 0.5f);
+                checkmarkRect.anchorMax = new Vector2(0f, 0.5f);
+                checkmarkRect.anchoredPosition = new Vector2(0f, 0f);
+                checkmarkRect.sizeDelta = new Vector2(28f, 28f);
+
+                Image checkmark = checkmarkGO.AddComponent<Image>();
+                checkmark.sprite = checkmarkSprite;
+                checkmark.color = new Color(1f, 0.641f, 0f);
+
+                Toggle toggle = toggleGO.AddComponent<Toggle>();
+                toggle.image = checkbox;
+                toggle.graphic = checkmark;
+                toggle.isOn = false;
+
+                toggle.transition = Selectable.Transition.ColorTint;
+                toggle.colors = maletoggle.colors;
+
+                GameObject textGO = new GameObject(toggleName + " Label");
+                RectTransform textRect = textGO.AddComponent<RectTransform>();
+                textRect.SetParent(checkboxRect);
+                textRect.anchorMin = new Vector2(1f, 0.5f);
+                textRect.anchorMax = new Vector2(1f, 0.5f);
+                textRect.sizeDelta = new Vector2(width - 28, 50);
+
+                Outline outline = textGO.AddComponent<Outline>();
+                outline.effectColor = Color.black;
+                outline.effectDistance = new Vector2(1f, -1f);
+
+                Text text = textGO.AddComponent<Text>();
+                text.font = canvas.GetComponentInChildren<Text>().font;
+                text.fontSize = maletoggle.GetComponentInChildren<Text>().fontSize;
+                text.color = maletoggle.GetComponentInChildren<Text>().color;
+                text.alignment = TextAnchor.MiddleCenter;
+                text.raycastTarget = false;
+
+                string localizationToken = "$hardcore_" + toggleNames[i].ToLower().Replace(' ', '_');
+
+                text.text = Localization.instance.Localize(localizationToken);
+
+                textRect.anchoredPosition = new Vector2((text.preferredWidth / 2) + 5, 0f);
+
+                ButtonSfx sfx = toggleGO.AddComponent<ButtonSfx>();
+                sfx.m_sfxPrefab = maletoggle.GetComponentInChildren<ButtonSfx>().m_sfxPrefab;
+            }
+
+            uiPanel = hardcorePanel;
+            Log.LogInfo($"{uiPanel} Initialized.");
+        }
+
         public static HardcoreData GetHardcoreDataForProfileID(long profileID)
         {
             return hardcoreProfiles.Find((HardcoreData profile) => { return profile.profileID == profileID; });
@@ -96,7 +310,7 @@ namespace Hardcore
             }            
             // End clear custom inventories
 
-            if (Settings.clearMapOnDeath.Value)
+            if (Settings.ClearMapOnDeath.Value)
             {
                 // Reset sync data for MapSharingMadeEasy to prevent removal of all shared pins on next sync
                 ZNetView nview = Traverse.Create(Player.m_localPlayer).Field<ZNetView>("m_nview").Value;

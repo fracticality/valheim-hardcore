@@ -37,6 +37,7 @@
     <Compile Include="Hardcore.cs" />
     <Compile Include="Patches\FejdStartup.cs" />
     <Compile Include="Patches\Player.cs" />
+    <Compile Include="Patches\PlayerProfile.cs" />
     <Compile Include="Patches\Raven.cs" />
     <Compile Include="Patches\Valkyrie.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
